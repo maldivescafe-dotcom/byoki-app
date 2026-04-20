@@ -105,6 +105,7 @@ const T = {
     cprS7title: 'AED到着時',
     cprS7text: 'AEDの電源を入れたら音声ガイダンスに従ってください。電気ショック中は傷病者から離れてください。ショック後はすぐに胸骨圧迫を再開してください。',
     cycleFlash: '⚡ 30回！そのまま続けてください！',
+    muteWarning: '🔔 <strong>マナーモードをオフ</strong>にすると音声ガイドが使えます。音がなくてもアニメーションで圧迫リズムを確認できます。',
   },
   en: {
     appTitle: 'Medical Consultation Guide',
@@ -207,6 +208,7 @@ const T = {
     cprS7title: 'When AED Arrives',
     cprS7text: 'Turn on the AED and follow the voice instructions. Stand clear during the shock. Resume compressions immediately after.',
     cycleFlash: '⚡ 30 done! Keep going!',
+    muteWarning: '🔔 Turn <strong>Silent Mode OFF</strong> to hear the audio guide. The animation works even without sound.',
   }
 };
 
