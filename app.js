@@ -314,7 +314,16 @@ function getDepartments(tier) {
     limb:  [{key:'deptOrtho', er:false}],
     skin:  [{key:'deptDerma', er:false}, {key:'deptSurgery', er:false}],
   };
-  const special = {abd04: 'deptUro', head05: 'deptInternal'};
+  // 症状ごとの個別マッピング（カテゴリ一括マップより優先）
+  const special = {
+    abd04:  'deptUro',      // 血尿・尿が出ない → 泌尿器科
+    head05: 'deptInternal', // 急な視力変化 → 内科（眼科への橋渡し）
+    skin02: 'deptInternal', // アナフィラキシー → 内科（ERは tier で既に追加済み）
+    skin03: 'deptSurgery',  // 出血が止まらない → 外科
+  };
+  // カテゴリマップを使わない症状（個別マッピングで十分なもの）
+  const skipCatMap = new Set(['skin02', 'skin03']);
+
   const seen = new Set();
   const result = [];
 
@@ -323,10 +332,10 @@ function getDepartments(tier) {
     seen.add('deptER');
   }
 
-  const cats = [...new Set(selectedSymptoms.map(id => {
-    const s = SYMPTOMS.find(x => x.id === id);
-    return s ? s.cat : null;
-  }).filter(Boolean))];
+  const cats = [...new Set(selectedSymptoms
+    .filter(id => !skipCatMap.has(id))
+    .map(id => { const s = SYMPTOMS.find(x => x.id === id); return s ? s.cat : null; })
+    .filter(Boolean))];
 
   for (const id of selectedSymptoms) {
     if (special[id]) {
