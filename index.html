@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a1628">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="体調不良のとき、病院に行くべきか・何科へ行くべきかをサポートするアプリ">
+<title>受診サポートガイド</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<!-- ========== SCREEN 1: SYMPTOM SELECTION ========== -->
+<div id="screen-symptoms" class="screen active">
+  <header class="app-header">
+    <div class="app-title">
+      <span data-i18n="appTitle">受診サポートガイド</span>
+      <span data-i18n="appSub">病院に行くべきか判断をサポート</span>
+    </div>
+    <button class="btn-lang">EN</button>
+  </header>
+  <div class="screen-body">
+    <div class="intro-card">
+      <h2 data-i18n="introTitle">今の体調を教えてください</h2>
+      <p data-i18n="introText">症状を選択すると、受診すべきか・何科へ行くべきかをお伝えします。</p>
+    </div>
+
+    <!-- CPR Emergency Button -->
+    <div class="cpr-btn-wrap">
+      <button id="btn-cpr-main" class="btn-cpr-main" data-i18n="cprBtn">🚨 意識なし・呼吸なし の場合はこちら</button>
+    </div>
+
+    <!-- Emergency Banner (hidden by default) -->
+    <div id="emergency-banner" class="hidden" data-i18n="emergencyBanner">⚠️ 緊急性の高い症状が含まれています。すぐに119番に電話するか、救急へ向かってください。</div>
+
+    <!-- Symptom Categories (built by JS) -->
+    <div id="symptom-categories"></div>
+  </div>
+
+  <!-- Sticky Bottom Bar -->
+  <div class="sticky-bar">
+    <div class="selected-count"><span id="selected-count-text">症状を選択してください</span></div>
+    <button id="btn-to-screen2" class="btn-next" disabled data-i18n="btnNext">重症度を入力 →</button>
+  </div>
+</div>
+
+<!-- ========== SCREEN 2: SEVERITY / CONTEXT ========== -->
+<div id="screen-context" class="screen">
+  <header class="app-header">
+    <div class="app-title">
+      <span data-i18n="appTitle">受診サポートガイド</span>
+    </div>
+    <button class="btn-lang">EN</button>
+  </header>
+  <div class="screen-body">
+    <button id="btn-back-s2" class="back-btn" data-i18n="btnBack">← 戻る</button>
+
+    <!-- Severity -->
+    <div class="section-label" data-i18n="severityLabel">症状の強さ</div>
+    <div class="btn-group col1">
+      <button class="sel-btn sev-btn" data-val="mild" data-i18n="sev0">軽い（日常生活はできる）</button>
+      <button class="sel-btn sev-btn" data-val="moderate" data-i18n="sev1">中程度（集中できない）</button>
+      <button class="sel-btn sev-btn" data-val="strong" data-i18n="sev2">強い（横になっていたい）</button>
+      <button class="sel-btn sev-btn" data-val="unbearable" data-i18n="sev3">我慢できないほど</button>
+    </div>
+
+    <!-- Duration -->
+    <div class="section-label" data-i18n="durationLabel">いつから？</div>
+    <div class="btn-group">
+      <button class="sel-btn dur-btn" data-val="today" data-i18n="dur0">今日から</button>
+      <button class="sel-btn dur-btn" data-val="days23" data-i18n="dur1">2〜3日前から</button>
+      <button class="sel-btn dur-btn" data-val="week" data-i18n="dur2">1週間以上前から</button>
+    </div>
+
+    <!-- Context -->
+    <div class="section-label" data-i18n="contextLabel">当てはまるものを選んでください（複数可）</div>
+    <div class="btn-group col1">
+      <button class="sel-btn ctx-btn" data-ctx="chronic" data-i18n="ctx0">持病あり・高齢者（65歳以上）</button>
+      <button class="sel-btn ctx-btn" data-ctx="pregnant" data-i18n="ctx1">妊娠中</button>
+      <button class="sel-btn ctx-btn" data-ctx="child" data-i18n="ctx2">子ども（15歳以下）</button>
+    </div>
+
+    <button id="btn-results" class="btn-results" disabled data-i18n="btnResults">判定結果を見る</button>
+  </div>
+</div>
+
+<!-- ========== SCREEN 3: RESULTS ========== -->
+<div id="screen-results" class="screen">
+  <header class="app-header">
+    <div class="app-title">
+      <span data-i18n="resultTitle">判定結果</span>
+    </div>
+    <button class="btn-lang">EN</button>
+  </header>
+  <div class="screen-body">
+    <button id="btn-back-results" class="back-btn" data-i18n="btnBack">← 戻る</button>
+    <!-- Urgency Card -->
+    <div id="urgency-card" class="urgency-card tier-3">
+      <span class="tier-emoji">🟢</span>
+      <span class="tier-label">数日内に受診を</span>
+      <span class="tier-sub">数日以内に医療機関を受診してください。</span>
+    </div>
+
+    <!-- Timing Advice -->
+    <div class="result-card">
+      <h3 data-i18n="timingTitle">⏰ 今の時間帯のアドバイス</h3>
+      <p id="timing-text" class="timing-text"></p>
+    </div>
+
+    <!-- Departments -->
+    <div class="result-card">
+      <h3 data-i18n="deptTitle">🏥 おすすめの診療科</h3>
+      <div id="dept-pills" class="dept-pills"></div>
+    </div>
+
+    <!-- Home Care Tips -->
+    <div id="homecare-section" class="result-card">
+      <h3 data-i18n="tipsTitle">🏠 自宅療養のポイント</h3>
+      <ul id="tips-list" class="tips-list"></ul>
+    </div>
+
+    <button id="btn-share" class="btn-share" data-i18n="btnShare">結果をシェアする</button>
+    <button id="btn-reset" class="btn-reset" data-i18n="btnReset">もう一度確認する</button>
+  </div>
+</div>
+
+<!-- ========== SCREEN CPR ========== -->
+<div id="screen-cpr" class="screen">
+  <header class="app-header">
+    <div class="app-title">
+      <span data-i18n="cprTitle">心肺蘇生（CPR）</span>
+      <span data-i18n="cprSub">意識なし・呼吸なし</span>
+    </div>
+    <button class="btn-lang">EN</button>
+  </header>
+  <div class="cpr-body">
+
+    <button id="btn-back-cpr" class="back-btn" style="color:#f87171" data-i18n="cprBackBtn">← 戻る</button>
+
+    <!-- STEP 1: Safety -->
+    <div class="cpr-step">
+      <div class="step-num" data-i18n="cprS1num">STEP 1</div>
+      <div class="step-title" data-i18n="cprS1title">安全確認</div>
+      <div class="step-text" data-i18n="cprS1text">周囲に危険（車・火・感電など）がないか確認してから近づいてください。</div>
+      <!-- SVG: Safety check arrows -->
+      <svg class="step-svg" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="80" cy="50" r="18" stroke="#fca5a5" stroke-width="2.5"/>
+        <circle cx="80" cy="50" r="6" fill="#fca5a5"/>
+        <line x1="80" y1="10" x2="80" y2="26" stroke="#f87171" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="80" y1="74" x2="80" y2="90" stroke="#f87171" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="10" y1="50" x2="26" y2="50" stroke="#f87171" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="134" y1="50" x2="150" y2="50" stroke="#f87171" stroke-width="2.5" stroke-linecap="round"/>
+        <polyline points="74,16 80,10 86,16" stroke="#f87171" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <polyline points="74,84 80,90 86,84" stroke="#f87171" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <polyline points="16,44 10,50 16,56" stroke="#f87171" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <polyline points="144,44 150,50 144,56" stroke="#f87171" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- STEP 2: Response check -->
+    <div class="cpr-step">
+      <div class="step-num" data-i18n="cprS2num">STEP 2</div>
+      <div class="step-title" data-i18n="cprS2title">反応を確認する</div>
+      <div class="step-text" data-i18n="cprS2text">肩を軽く叩きながら、大きな声で「大丈夫ですか！」と呼びかけてください。反応がなければ次へ進んでください。</div>
+      <!-- SVG: Person lying down (head on right), hand tapping right shoulder -->
+      <svg class="step-svg" viewBox="0 0 160 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Shadow -->
+        <ellipse cx="84" cy="76" rx="62" ry="7" fill="#3b0f0f" stroke="#7f1d1d" stroke-width="1"/>
+        <!-- Body (feet=left, head=right) -->
+        <rect x="22" y="58" width="108" height="14" rx="7" fill="#2a0a0a" stroke="#fca5a5" stroke-width="1.5"/>
+        <!-- Head (right) -->
+        <circle cx="143" cy="63" r="11" fill="#2a0a0a" stroke="#fca5a5" stroke-width="1.5"/>
+        <!-- Shoulder highlight (right side, near head) -->
+        <ellipse cx="120" cy="63" rx="11" ry="7" fill="none" stroke="#fcd34d" stroke-width="1.2" stroke-dasharray="3 2"/>
+        <!-- Hand coming from above-right, tapping right shoulder -->
+        <path d="M124 36 Q122 46 120 58" stroke="#fcd34d" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        <circle cx="125" cy="31" r="8" fill="#fcd34d" opacity=".9"/>
+        <text x="119" y="35" font-size="8" fill="#1a0000" font-weight="bold">手</text>
+        <!-- Sound waves from mouth (far right) -->
+        <path d="M148 54 Q156 47 155 40" stroke="#f87171" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <path d="M148 54 Q159 45 158 36" stroke="#f87171" stroke-width="1.5" stroke-linecap="round" fill="none" opacity=".6"/>
+        <!-- Call text (left) -->
+        <text x="10" y="40" font-size="7.5" fill="#f87171">大丈夫</text>
+        <text x="10" y="50" font-size="7.5" fill="#f87171">ですか！</text>
+      </svg>
+    </div>
+
+    <!-- STEP 3: Call for help -->
+    <div class="cpr-step">
+      <div class="step-num" data-i18n="cprS3num">STEP 3</div>
+      <div class="step-title" data-i18n="cprS3title">大声で助けを呼ぶ</div>
+      <div class="step-text" data-i18n="cprS3text">「誰か来てください！ 119番を呼んでください！ AEDを持ってきてください！」と大声で叫んでください。</div>
+    </div>
+
+    <!-- STEP 4: Call 119 -->
+    <div class="cpr-step">
+      <div class="step-num" data-i18n="cprS4num">STEP 4</div>
+      <div class="step-title" data-i18n="cprS4title">119番に電話する</div>
+      <div class="step-text" data-i18n="cprS4text">電話しながら次のステップを続けることができます。</div>
+      <a href="tel:119" class="btn-call119" data-i18n="cprCall">📞 今すぐ119番に電話</a>
+    </div>
+
+    <!-- STEP 5: Breathing check -->
+    <div class="cpr-step">
+      <div class="step-num" data-i18n="cprS5num">STEP 5</div>
+      <div class="step-title" data-i18n="cprS5title">呼吸を確認する（10秒以内）</div>
+      <div class="step-text" data-i18n="cprS5text">胸の動きを見て、呼吸をしているか確認します。普通の呼吸がなければ、すぐに胸骨圧迫を開始してください。</div>
+      <!-- SVG: Check breathing - look at chest (head on right) -->
+      <svg class="step-svg" viewBox="0 0 160 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Person lying (feet=left, head=right) -->
+        <rect x="20" y="60" width="110" height="16" rx="8" fill="#2a0a0a" stroke="#fca5a5" stroke-width="1.5"/>
+        <!-- Head (right) -->
+        <circle cx="142" cy="66" r="10" fill="#2a0a0a" stroke="#fca5a5" stroke-width="1.5"/>
+        <!-- Chest area highlight (right side, near head) -->
+        <rect x="104" y="56" width="30" height="12" rx="4" fill="none" stroke="#fcd34d" stroke-width="1.5" stroke-dasharray="3 2"/>
+        <!-- Eye above chest, with downward arrow -->
+        <text x="108" y="24" font-size="10" fill="#fca5a5">👁</text>
+        <text x="120" y="24" font-size="7" fill="#f87171">10秒</text>
+        <path d="M119 28 L119 52" stroke="#f87171" stroke-width="2" stroke-linecap="round"/>
+        <polyline points="113,46 119,52 125,46" stroke="#f87171" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Label on left -->
+        <text x="22" y="44" font-size="7.5" fill="#fca5a5">胸の</text>
+        <text x="22" y="54" font-size="7.5" fill="#fca5a5">動きを見る</text>
+      </svg>
+    </div>
+
+    <!-- STEP 6: Chest compressions (MAIN) -->
+    <div class="cpr-step active-step" id="step-compress">
+      <div class="step-num" data-i18n="cprS6num">STEP 6</div>
+      <div class="step-title" data-i18n="cprS6title">胸骨圧迫（心臓マッサージ）</div>
+      <div class="step-text" data-i18n="cprS6text">両手を重ね、胸の中央（乳首を結ぶ線の中点）に置き、真上から体重をかけて押してください。</div>
+
+      <!-- Grok illustration: compression zone (red rectangle = press here) -->
+      <div class="cpr-img-wrap">
+        <img src="./cpr-guide.jpg" alt="胸骨圧迫の位置" class="cpr-guide-img">
+        <!-- Compression circle overlaid on image -->
+        <div id="compress-circle" class="compress-circle" data-i18n="cprCircleText">押す！</div>
+        <div class="cpr-img-labels">
+          <div class="cpr-label-press">✅ <strong>赤枠の場所</strong>を両手で押す<br><span>（胸骨の下半分・みぞおちより上）</span></div>
+          <div class="cpr-label-ng">⚠️ みぞおち（赤枠の下）は押さない</div>
+        </div>
+      </div>
+
+      <!-- Counter only (circle moved to image overlay) -->
+      <div class="compress-visual">
+        <div class="compress-counter"><span id="cpr-count">0</span></div>
+        <div class="compress-counter-label" data-i18n="cprCountLabel">回目</div>
+        <div class="depth-hint" data-i18n="cprDepth">⬇️ 5〜6cm 押し込む　💪 肘を伸ばして押す</div>
+      </div>
+
+      <!-- Controls -->
+      <div class="cpr-controls">
+        <button id="btn-start-cpr" class="btn-start-cpr" data-i18n="cprBtnStart">▶ 圧迫を開始</button>
+        <button id="btn-mute" class="btn-mute" data-i18n="cprBtnMuteOn">🔇 消音</button>
+      </div>
+
+      <!-- Cycle flash (30 compressions milestone — non-stopping) -->
+      <div id="cycle-flash" class="hidden" data-i18n="cycleFlash">⚡ 30回！そのまま続けてください！</div>
+    </div>
+
+    <!-- STEP 7: AED -->
+    <div class="cpr-step aed-step">
+      <div class="step-num" data-i18n="cprS7num">STEP 7</div>
+      <div class="step-title" data-i18n="cprS7title">AED到着時</div>
+      <div class="step-text" data-i18n="cprS7text">AEDの電源を入れたら音声ガイダンスに従ってください。電気ショック中は傷病者から離れてください。ショック後はすぐに胸骨圧迫を再開してください。</div>
+      <!-- SVG: AED device -->
+      <svg class="step-svg" viewBox="0 0 160 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- AED box -->
+        <rect x="40" y="20" width="80" height="55" rx="8" fill="#2a1400" stroke="#f59e0b" stroke-width="2"/>
+        <rect x="48" y="28" width="64" height="30" rx="4" fill="#1a0e00" stroke="#92400e" stroke-width="1"/>
+        <!-- Power button -->
+        <circle cx="80" cy="67" r="7" fill="#f59e0b" opacity=".9"/>
+        <path d="M80 63 L80 67" stroke="#1a0e00" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M76 64 A6 6 0 1 1 84 64" stroke="#1a0e00" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <!-- Lightning bolt on screen -->
+        <path d="M76 32 L82 42 L79 42 L85 52 L79 44 L82 44 Z" fill="#fcd34d"/>
+        <!-- Electrode pads hint -->
+        <rect x="10" y="38" width="22" height="14" rx="3" fill="#2a1400" stroke="#f59e0b" stroke-width="1.5"/>
+        <rect x="128" y="38" width="22" height="14" rx="3" fill="#2a1400" stroke="#f59e0b" stroke-width="1.5"/>
+        <text x="12" y="48" font-size="7" fill="#fcd34d">パッド</text>
+        <text x="130" y="48" font-size="7" fill="#fcd34d">パッド</text>
+      </svg>
+    </div>
+
+    <div class="cpr-bottom-pad"></div>
+  </div>
+</div>
+
+<!-- ========== TOAST ========== -->
+<div id="toast"></div>
+
+<script src="./app.js"></script>
+</body>
+</html>
