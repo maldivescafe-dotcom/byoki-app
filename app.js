@@ -60,6 +60,8 @@ const T = {
     timingWeekend: '土日・祝日です。休日診療か救急外来を探しましょう。',
     timingNightUrgent: '深夜・早朝です。今すぐ119番または救急病院へ向かってください。一人で運転しないでください。',
     timingUrgent: '今すぐ119番または救急病院へ。一人で運転しないでください。',
+    timingOffhours: '今は診療時間外です。症状が悪化したら夜間救急外来へ。明日の診療時間内に受診してください。',
+    timingOffhoursWeekend: '今は休日です。症状が悪化したら休日診療・救急外来へ。平日の診療時間内に受診してください。',
     deptInternal: '内科',
     deptNeuro: '神経内科',
     deptNeurosurg: '脳神経外科',
@@ -163,6 +165,8 @@ const T = {
     timingWeekend: 'It\'s the weekend. Look for a weekend/holiday clinic or ER.',
     timingNightUrgent: 'It\'s the middle of the night. Call 119 or go to the ER now. Do not drive alone.',
     timingUrgent: 'Call 119 or go to the ER now. Do not drive alone.',
+    timingOffhours: 'Clinics are closed now. Go to an after-hours clinic if symptoms worsen. Otherwise, visit a clinic tomorrow.',
+    timingOffhoursWeekend: 'It\'s the weekend. See a weekend clinic if symptoms worsen. Otherwise, visit a clinic on a weekday.',
     deptInternal: 'Internal Medicine',
     deptNeuro: 'Neurology',
     deptNeurosurg: 'Neurosurgery',
@@ -362,23 +366,25 @@ function getTimingAdvice(tier) {
   const hour = now.getHours();
   const dow = now.getDay();
   const isWeekend = (dow === 0 || dow === 6);
-  const isNight = (hour >= 22 || hour < 6);
+  const isNight   = (hour >= 22 || hour < 6);
+  const isEvening = (hour >= 18 && hour < 22);
   const isClinicHours = (hour >= 9 && hour < 18) && !isWeekend;
 
+  // Tier 0・1: 今すぐ救急
   if (tier <= 1) {
     return isNight ? T[lang].timingNightUrgent : T[lang].timingUrgent;
   }
+  // Tier 2: 今日中に受診
   if (tier === 2) {
-    if (isClinicHours) return T[lang].timingClinic;
-    if (isNight) return T[lang].timingNight;
-    if (isWeekend) return T[lang].timingWeekend;
-    return T[lang].timingEvening;
+    if (isClinicHours)  return T[lang].timingClinic;
+    if (isNight)        return T[lang].timingNight;
+    if (isWeekend)      return T[lang].timingWeekend;
+    return T[lang].timingEvening;   // 夕方（18〜22時・平日）
   }
-  if (tier === 3) {
-    if (isClinicHours) return T[lang].timingClinic;
-    return T[lang].timingWeekend;
-  }
-  return T[lang].timingClinic;
+  // Tier 3・4: 数日内 / 自宅療養
+  if (isClinicHours)  return T[lang].timingClinic;
+  if (isWeekend)      return T[lang].timingOffhoursWeekend;
+  return T[lang].timingOffhours;    // 夜間・夕方（診療時間外）
 }
 
 // ========== HOME CARE TIPS ==========
